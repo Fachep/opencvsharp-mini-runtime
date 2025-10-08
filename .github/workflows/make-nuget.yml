@@ -1,9 +1,6 @@
 name: Make-NuGet
 
 on:
-  push:
-    branches: [ feature/docker ]
-    paths: [ '.github/workflows/make-nuget.yml' ]
   workflow_dispatch:
 
 env:
@@ -23,19 +20,6 @@ jobs:
     strategy:
       matrix:
         include:
-        - { os: ubuntu.22.04, arch: x64,   upstream: ubuntu.22.04-x64 }
-        - { os: ubuntu.22.04, arch: arm64, upstream: ubuntu.22.04-arm64 }
-        - { os: win,          arch: x64,   upstream: win-x64 }
-        - { os: win,          arch: x86,   upstream: win-x86 }
-        - { os: win,          arch: arm64, upstream: win-arm64 }
-        - { os: osx,          arch: x64,   upstream: osx-x64 }
-        - { os: osx,          arch: arm64, upstream: osx-arm64 }
-        - { os: centos.7,     arch: x64,   upstream: centos.7-x64 }
-        - { os: centos.7,     arch: arm64, upstream: centos.7-arm64 }
-        - { os: linux,        arch: x64,   upstream: rhel.8-x64 }
-        - { os: linux,        arch: arm64, upstream: rhel.8-arm64 }
-        - { os: linux-musl,   arch: x64,   upstream: alpine.3.22-x64 }
-        - { os: linux-musl,   arch: arm64, upstream: alpine.3.22-arm64 }
         - { os: android,      arch: arm64, upstream: android-arm64 }
         - { os: android,      arch: x64,   upstream: android-x64 }
 
@@ -66,8 +50,8 @@ jobs:
       run: |
         set -euo pipefail
 
-        PKG_ID="Sdcb.OpenCvSharp4.mini.runtime.${{ matrix.os }}-${{ matrix.arch }}"
-        AUTHOR="sdcb"
+        PKG_ID="VCameraClient.OpenCvSharp4.mini.runtime.${{ matrix.os }}-${{ matrix.arch }}"
+        AUTHOR="sdcb,Fachep"
         LICENSE="Apache-2.0"
         GIT_URL="https://github.com/sdcb/opencvsharp-mini-runtime"
         TAGS="Sdcb OpenCV OpenCvSharp OpenCvSharp4"
@@ -169,183 +153,3 @@ jobs:
         name: nuget-${{ matrix.os }}-${{ matrix.arch }}
         path: nupkgs/*.nupkg
         if-no-files-found: error
-
-  test-nuget:
-    name: Test NuGet
-    needs: make-nuget
-    strategy:
-      matrix:
-        include:
-          - { os: ubuntu.22.04, arch: x64,   runs-on: ubuntu-22.04,     upstream: ubuntu.22.04-x64 }
-          - { os: ubuntu.22.04, arch: arm64, runs-on: ubuntu-22.04-arm, upstream: ubuntu.22.04-arm64 }
-          - { os: win,          arch: x64,   runs-on: windows-2022,     upstream: win-x64 }
-          - { os: win,          arch: x86,   runs-on: windows-2022,     upstream: win-x86 }
-          - { os: win,          arch: arm64, runs-on: windows-11-arm,   upstream: win-arm64 }
-          - { os: osx,          arch: x64,   runs-on: macos-13,         upstream: osx-x64 }
-          - { os: osx,          arch: arm64, runs-on: macos-14,         upstream: osx-arm64 }
-          - { os: centos.7,     arch: x64,   runs-on: ubuntu-22.04,     upstream: centos.7-x64 }
-          - { os: centos.7,     arch: arm64, runs-on: ubuntu-22.04-arm, upstream: centos.7-arm64 }
-          - { os: linux,        arch: x64,   runs-on: ubuntu-22.04,     upstream: rhel.8-x64 }
-          - { os: linux,        arch: arm64, runs-on: ubuntu-22.04-arm, upstream: rhel.8-arm64 }
-          # - { os: linux-musl,   arch: x64,   runs-on: ubuntu-22.04,     upstream: alpine.3.22-x64 }
-          # - { os: linux-musl,   arch: arm64, runs-on: ubuntu-22.04-arm, upstream: alpine.3.22-arm64 }
-          # - { os: android,      arch: arm64, runs-on: ubuntu-22.04,     upstream: android-arm64 }
-          # - { os: android,      arch: x64,   runs-on: ubuntu-22.04,     upstream: android-x64 }
-          
-    runs-on: ${{ matrix.runs-on }}
-    defaults:
-      run:
-        shell: bash
-
-    steps:
-      - name: Download NuGet artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: nuget-${{ matrix.os }}-${{ matrix.arch }}
-          path: ./nupkg
-
-      - name: Create test project
-        run: |
-          mkdir TestApp && cd TestApp
-          
-          cat > TestApp.csproj <<'EOF'
-          <Project Sdk="Microsoft.NET.Sdk">
-            <PropertyGroup>
-              <OutputType>Exe</OutputType>
-              <TargetFramework>net8.0</TargetFramework>
-              <ImplicitUsings>enable</ImplicitUsings>
-              <PlatformTarget>${{ matrix.arch }}</PlatformTarget>
-            </PropertyGroup>
-          </Project>
-          EOF
-
-          dotnet add package OpenCvSharp4
-          dotnet nuget add source ../nupkg --name local
-          dotnet add package Sdcb.OpenCvSharp4.mini.runtime.${{ matrix.os }}-${{ matrix.arch }} --source ../nupkg
-
-      - name: Write test code
-        run: |
-          cat > TestApp/Program.cs <<'EOF'
-          using OpenCvSharp;
-          using System;
-          class Program
-          {
-              static void Main()
-              {
-                  using Mat mat = new Mat(rows: 3, cols: 4, type: MatType.CV_8SC4);
-                  Console.WriteLine("OpenCvSharp nuget test good!");
-              }
-          }
-          EOF
-
-      - name: Build
-        run: |
-          cd TestApp
-          dotnet build --configuration Release
-
-      - name: Run
-        run: |
-          cd TestApp
-          dotnet run --configuration Release --no-build
-
-  test-nuget-netfx:
-    name: Test NuGet (NetFX)
-    needs: make-nuget
-    runs-on: windows-2022
-    strategy:
-      matrix:
-        include:
-          - { os: win, arch: x64 }
-          - { os: win, arch: x86 }
-
-    steps:
-      - name: Download NuGet artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: nuget-${{ matrix.os }}-${{ matrix.arch }}
-          path: ./nupkg
-
-      - name: Create .NET Framework 4.8 test project
-        run: |
-          mkdir TestApp && cd TestApp
-
-          # 手写 SDK 风格 net48 csproj
-          New-Item -Name "TestApp.csproj" -ItemType "file" -Value @"
-          <Project Sdk="Microsoft.NET.Sdk">
-            <PropertyGroup>
-              <OutputType>Exe</OutputType>
-              <TargetFramework>net48</TargetFramework>
-            </PropertyGroup>
-          </Project>
-          "@
-
-          dotnet add package OpenCvSharp4
-          dotnet nuget add source ../nupkg --name local
-          dotnet add package Sdcb.OpenCvSharp4.mini.runtime.${{ matrix.os }}-${{ matrix.arch }} --source ../nupkg
-          
-          # 写测试代码
-          New-Item -Name "Program.cs" -ItemType "file" -Value @"
-          using OpenCvSharp;
-          using System;
-          class Program
-          {
-              static void Main()
-              {
-                  using (Mat mat = new Mat(rows: 3, cols: 4, type: MatType.CV_8SC4))
-                  {
-                  }
-                  Console.WriteLine("OpenCvSharp nuget test good! (.NET Framework)");
-              }
-          }
-          "@
-      
-      - name: Build (.NET Framework 4.8)
-        run: |
-          cd TestApp
-          dotnet build --configuration Release --arch ${{ matrix.arch }}
-
-      - name: Show build output
-        shell: bash
-        run: |
-          cd TestApp
-          ls -lR bin/Release/net48
-
-      - name: Run (.NET Framework 4.8)
-        run: |
-          cd TestApp
-          ./bin/Release/net48/${{ matrix.os }}-${{ matrix.arch }}/TestApp.exe
-
-  upload-nuget:
-    name: Upload NuGet
-    needs: [make-nuget, test-nuget, test-nuget-netfx]
-    runs-on: ubuntu-22.04
-
-    steps:
-      - name: Download nupkg artifact
-        uses: actions/download-artifact@v4
-        with:
-          merge-multiple: true
-          path: nupkgs
-
-      - name: List nupkgs
-        run: |
-          echo "::group::nupkgs"
-          ls -lR nupkgs
-          echo "::endgroup::"
-
-      - name: Upload to NuGet
-        run: |
-          set -euo pipefail
-          echo "Uploading to NuGet..."
-          for nupkg in nupkgs/*.nupkg; do
-            echo "Uploading $nupkg"
-            dotnet nuget push "$nupkg" --source "https://nuget.pkg.github.com/${{ github.repository_owner }}" --api-key "${{ secrets.GITHUB_TOKEN }}" --skip-duplicate
-          done
-          echo "Upload completed."
-
-      - name: Bundle upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: nuget-bundle
-          path: nupkgs/*.nupkg
-          if-no-files-found: error
