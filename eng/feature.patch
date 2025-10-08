@@ -1,0 +1,28 @@
+diff --git a/src/OpenCvSharpExtern/CMakeLists.txt b/src/OpenCvSharpExtern/CMakeLists.txt
+index 13eedf05..78a16354 100644
+--- a/src/OpenCvSharpExtern/CMakeLists.txt
++++ b/src/OpenCvSharpExtern/CMakeLists.txt
+@@ -9,7 +9,7 @@ IF(APPLE)
+     link_directories(/usr/local/lib)
+ ENDIF()
+ 
+-file(GLOB OPENCVSHARP_FILES core*.cpp imgp*.cpp imgc*.cpp std*.cpp)
++file(GLOB OPENCVSHARP_FILES core*.cpp imgp*.cpp imgc*.cpp std*.cpp aruco.cpp videoio.cpp calib3d.cpp)
+ 
+ find_package(OpenCV REQUIRED)
+ 
+diff --git a/src/OpenCvSharpExtern/include_opencv.h b/src/OpenCvSharpExtern/include_opencv.h
+index e0f3e560..ae57ed41 100644
+--- a/src/OpenCvSharpExtern/include_opencv.h
++++ b/src/OpenCvSharpExtern/include_opencv.h
+@@ -40,6 +40,10 @@
+ #endif
+ #include <opencv2/core/utils/logger.hpp>
+ #include <opencv2/imgproc/imgproc_c.h>
++#include <opencv2/videoio.hpp>
++#include <opencv2/aruco.hpp>
++#include <opencv2/aruco/charuco.hpp>
++#include <opencv2/calib3d.hpp>
+ 
+ #include <vector>
+ #include <algorithm>
